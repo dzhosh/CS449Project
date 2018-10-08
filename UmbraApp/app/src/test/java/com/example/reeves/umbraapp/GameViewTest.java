@@ -1,6 +1,7 @@
 package com.example.reeves.umbraapp;
 
 import android.content.Context;
+import android.view.Display;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -14,8 +15,10 @@ public class GameViewTest {
 
     @Mock
     Context mockContext;
+    @Mock
+    Display display;
 
-    GameView gameView = new GameView(mockContext, true);
+    GameView gameView = new GameView(mockContext, true, display);
 
     @Test
     public void updateGoalPosition() {

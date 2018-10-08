@@ -1,10 +1,11 @@
 package com.example.reeves.umbraapp;
 
-import android.support.v7.app.AppCompatActivity;
+import android.app.Activity;
 import android.os.Bundle;
+import android.view.Display;
 import android.view.View;
 
-public class GameLoop extends AppCompatActivity {
+public class GameLoop extends Activity {
 
     GameView gameView;
 
@@ -12,8 +13,10 @@ public class GameLoop extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        Display display = getWindowManager().getDefaultDisplay();
+
         // Create new GameView
-        gameView = new GameView(this, false);
+        gameView = new GameView(this, false, display);
 
         // Set Fullscreen Immersive to Remove Navigation Bar, etc.
         // Referenced https://developer.android.com/training/system-ui/immersive
