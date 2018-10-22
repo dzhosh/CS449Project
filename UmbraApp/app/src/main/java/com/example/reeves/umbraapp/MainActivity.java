@@ -2,8 +2,8 @@ package com.example.reeves.umbraapp;
 
 import android.app.Activity;
 import android.content.Intent;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 
@@ -25,9 +25,17 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
         setContentView(R.layout.activity_main);
 
-        Button start_button = findViewById(R.id.button_middle);
+        Button start_button = findViewById(R.id.start_button);
         start_button.setText("Start");
         start_button.setOnClickListener(this);
+
+        Button settings_button = findViewById(R.id.settings_button);
+        settings_button.setText("Settings");
+        settings_button.setOnClickListener(this);
+
+        Button triumphs_button = findViewById(R.id.triumphs_button);
+        triumphs_button.setText("Triumphs");
+        triumphs_button.setOnClickListener(this);
     }
 
     // Remove System UI When Playing
@@ -53,6 +61,24 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
     @Override
     public void onClick(View v){
-        startActivity(new Intent(this, GameLoop.class));
+        switch(v.getId()) {
+            case R.id.start_button:
+                startActivity(new Intent(this, GameLauncher.class));
+                break;
+            case R.id.settings_button:
+                startActivity(new Intent(this, GameSettings.class));
+                break;
+            case R.id.triumphs_button:
+                startActivity(new Intent(this, GameSettings.class));
+        }
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent motionEvent) {
+        switch (motionEvent.getAction() & MotionEvent.ACTION_MASK) {
+            case MotionEvent.ACTION_DOWN:
+                hideSystemUI();
+        }
+        return true;
     }
 }
