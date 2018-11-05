@@ -18,6 +18,14 @@ public class Player extends GameObject {
     private double durability;
     private float hitbox_width;
     private float hitbox_height;
+    private float laser_radius;
+    private float laser_draw_radius;
+    private float laser_x;
+    private float laser_y;
+    private boolean laser_avail;
+    private boolean laser_charging;
+    private float laser_speed;
+    private double laser_angle;
 
     public Player(Context c, int s_width, int s_height) {
         screen_width = s_width;
@@ -42,6 +50,14 @@ public class Player extends GameObject {
         turn_direction = 1;
         hitbox_height = height / 2;
         hitbox_width = width / 12;
+        laser_x = x;
+        laser_y = screen_height * 3 / 5 - height / 2;
+        laser_avail = false;
+        laser_charging = true;
+        laser_radius = 7;
+        laser_draw_radius = 0;
+        laser_speed = speed * 2;
+        laser_angle = Math.PI / 2 * 3;
     }
 
     public void updateIntro(long frame_rate) {
@@ -84,6 +100,43 @@ public class Player extends GameObject {
             opacity = 255;
         }
 
+        if (laser_draw_radius < laser_radius) {
+            laser_draw_radius = laser_draw_radius + laser_radius / frame_rate;
+        }
+        else if (laser_draw_radius > laser_radius) {
+            laser_draw_radius = laser_radius;
+            laser_avail = true;
+            laser_charging = false;
+        }
+
+        if (!(laser_avail || laser_charging)) {
+            if (is_turning) {
+                double theta = turn_speed / frame_rate * turn_direction;
+
+                // Translate to origin
+                laser_x -= x;
+                laser_y -= y;
+                // Rotate around origin
+                laser_x = (float) (laser_x * Math.cos(theta) - laser_y * Math.sin(theta));
+                laser_y = (float) (laser_x * Math.sin(theta) + laser_y * Math.cos(theta));
+                // Translate back to original position
+                laser_x += x;
+                laser_y += y;
+
+                // Update movement angle
+                laser_angle += theta;
+            }
+
+            laser_x += Math.cos(laser_angle) * laser_speed / frame_rate;
+            laser_y += Math.sin(laser_angle) * laser_speed / frame_rate;
+
+            // If laser leaves screen size, reset laser
+            if ((Math.abs(laser_x) > screen_width + 1) ||
+                    (Math.abs(laser_y) > screen_height + 1)) {
+                resetLaser();
+            }
+        }
+
         if (immune_frames > 0) {
             immune_frames--;
         }
@@ -101,6 +154,11 @@ public class Player extends GameObject {
         c.drawCircle(x, y, (Math.max(width, height)) / 2 + 10, p);
     }
 
+    public void drawLaser(Canvas c, Paint p) {
+        p.setColor(Color.argb(opacity, 255, 255, 255));
+        c.drawCircle(laser_x, laser_y, laser_draw_radius, p);
+    }
+
     public boolean detectCollision(GameObject object) {
         // Translate object to the origin
         float translated_x = object.getX() - x;
@@ -116,6 +174,26 @@ public class Player extends GameObject {
         return (Math.abs(translated_x) - object.getWidth() / 2 <= hitbox_width / 2) &&
                 (Math.abs(translated_y) - object.getHeight() / 2 <= hitbox_height / 2);
 
+    }
+
+    public boolean detectLaserCollision(GameObject object) {
+        if (!(laser_avail || laser_charging)) {
+            // Translate object to the origin
+            float translated_x = object.getX() - laser_x;
+            float translated_y = object.getY() - laser_y;
+            return (Math.abs(translated_x) - object.getWidth() / 2 <= laser_radius) &&
+                    (Math.abs(translated_y) - object.getHeight() / 2 <= laser_radius);
+        }
+        else
+            return false;
+    }
+
+    public void resetLaser() {
+        laser_x = x;
+        laser_y = y - height / 2;
+        laser_draw_radius = 0;
+        laser_charging = true;
+        laser_angle = Math.PI * 3 / 2;
     }
 
     public void increaseHealth() {
@@ -145,6 +223,14 @@ public class Player extends GameObject {
     public void turnRight() {
         is_turning = true;
         turn_direction = -1;
+    }
+
+    public boolean canFire() {
+        return laser_avail;
+    }
+
+    public void fire() {
+        laser_avail = false;
     }
 
     public void stopTurning() {

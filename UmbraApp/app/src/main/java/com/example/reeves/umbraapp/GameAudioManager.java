@@ -9,10 +9,12 @@ import android.os.Build;
 public class GameAudioManager {
     private SoundPool soundPool;
     private MediaPlayer mediaPlayer;
+    private float music_volume;
+    private float sfx_volume;
     private int[] sounds;
     private boolean isPlayingBGM;
 
-    public GameAudioManager(Context c) {
+    public GameAudioManager(Context c, int m_volume, int s_volume) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             soundPool = new SoundPool.Builder()
                     .setMaxStreams(5)
@@ -25,15 +27,19 @@ public class GameAudioManager {
 
         mediaPlayer = MediaPlayer.create(c, R.raw.space_chase);
         isPlayingBGM = false;
+
+        music_volume = (float)m_volume / 100;
+        sfx_volume = (float)s_volume / 100;
     }
 
     public void playSound(int soundID) {
-        soundPool.play(sounds[soundID], 1, 1, 1, 0, 1f);
+        soundPool.play(sounds[soundID], sfx_volume, sfx_volume, 1, 0, 1f);
     }
 
     public void playBGM() {
         mediaPlayer.start();
         mediaPlayer.setLooping(true);
+        mediaPlayer.setVolume(music_volume, music_volume);
         isPlayingBGM = true;
     }
 
@@ -42,10 +48,20 @@ public class GameAudioManager {
         isPlayingBGM = false;
     }
 
+    public void pauseBGM() {
+        mediaPlayer.pause();
+        isPlayingBGM = false;
+    }
+
+    public void resumeBGM() {
+        mediaPlayer.start();
+    }
+
     public void clean() {
         sounds = null;
         soundPool.release();
         soundPool = null;
+        mediaPlayer.stop();
     }
 
     public boolean isPlayingBGM() {

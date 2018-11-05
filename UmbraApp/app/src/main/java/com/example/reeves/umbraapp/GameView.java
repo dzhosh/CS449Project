@@ -6,7 +6,9 @@ Basic Structure of GameView (Frame Rate Calculation, Draw, Resume, and Pause Met
 
 package com.example.reeves.umbraapp;
 
+import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -16,6 +18,15 @@ import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
+
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 
 public class GameView extends SurfaceView implements Runnable {
 
@@ -37,9 +48,13 @@ public class GameView extends SurfaceView implements Runnable {
     private long total_score;
     private boolean introRunning;
     private boolean running;
+    private boolean paused;
     private float screen_width;
     private float screen_height;
     private int goal_score;
+    private int music_volume;
+    private int sfx_volume;
+    private int difficulty;
 
     // Intro Variables
     private float current_time;
@@ -59,11 +74,19 @@ public class GameView extends SurfaceView implements Runnable {
 
     public GameView(Context c, Display display) {
         super(c);
+        context = c;
+
+        try {
+            loadSettings();
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
 
         // Get current holder and create Paint for Drawing to Screen
         holder = getHolder();
         paint = new Paint();
-        audioManager = new GameAudioManager(c);
+        audioManager = new GameAudioManager(c, music_volume, sfx_volume);
 
         // Initialize All Necessary Variables
         try {
@@ -110,6 +133,7 @@ public class GameView extends SurfaceView implements Runnable {
         total_score = 0;
         introRunning = true;
         running = false;
+        paused = false;
         frame_rate = 30;
         goal_score = 100;
 
@@ -132,6 +156,9 @@ public class GameView extends SurfaceView implements Runnable {
             }
         }
         while (running) {
+            while (paused) {
+                draw();
+            }
             // Get Start Time for iteration to Calculate frame_rate
             long start_time = System.currentTimeMillis();
             update();
@@ -210,6 +237,7 @@ public class GameView extends SurfaceView implements Runnable {
 
             // Draw Player
             player.drawBitmap(canvas, paint);
+            player.drawLaser(canvas, paint);
             // Draw Shield if player is immune
             if (player.isImmune()) {
                 player.drawShield(canvas, paint);
@@ -230,6 +258,15 @@ public class GameView extends SurfaceView implements Runnable {
             // Draw HUD
             hud.drawHealthBar(canvas, paint);
 
+            if (paused) {
+                canvas.drawColor(Color.argb(100, 0, 0, 0));
+                paint.setTextSize(300);
+                paint.setColor(Color.argb(255, 255, 255, 255));
+                float text_width = paint.measureText("P A U S E D");
+                int y = (int)(screen_height / 2 + 150);
+                canvas.drawText("P A U S E D", (screen_width - text_width) / 2, y, paint);
+            }
+
             paint.setAlpha(255);
             holder.unlockCanvasAndPost(canvas);
         }
@@ -247,6 +284,7 @@ public class GameView extends SurfaceView implements Runnable {
         // Check For Collisions
         checkGoalCollision();
         checkHostileCollision();
+        checkLaserCollision();
     }
 
     public void checkGoalCollision() {
@@ -291,6 +329,18 @@ public class GameView extends SurfaceView implements Runnable {
         }
     }
 
+    public void checkLaserCollision() {
+        // Check for a collision for every hostile
+        for (int i = 0; i < current_hostile_amount; i++) {
+            if (player.detectLaserCollision(hostiles[i])) {
+                // Create new hostile to replace destroyed one
+                hostiles[i] = new Hostile(player);
+                player.resetLaser();
+                break;
+            }
+        }
+    }
+
     public void addHostile() {
         if (current_hostile_amount < max_hostile_amount) {
             hostiles[current_hostile_amount] = new Hostile(player);
@@ -308,23 +358,83 @@ public class GameView extends SurfaceView implements Runnable {
         // Add Ending Animations
         running = false;
         audioManager.stopBGM();
+        audioManager.clean();
+        try {
+            saveLastGame();
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+        Activity a = (Activity)context;
+        a.finish();
+        context.startActivity(new Intent(context, GameOver.class));
     }
 
     public void resume() {
         running = true;
         gameThread = new Thread(this);
         gameThread.start();
+        audioManager.resumeBGM();
     }
 
     public void pause() {
         running = false;
+        paused = true;
         player.stopTurning();
+        audioManager.pauseBGM();
         try {
             gameThread.join();
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
     }
+
+    public void loadSettings()
+            throws IOException {
+        int settings_array[] = new int[3];
+
+        BufferedReader r = null;
+        try {
+            InputStream in = context.openFileInput("settings.txt");
+            r = new BufferedReader(new InputStreamReader(in));
+            for (int i = 0; i < 3; i++) {
+                String line = r.readLine();
+                settings_array[i] = Integer.parseInt(line);
+            }
+        }
+        catch (FileNotFoundException e) {
+            settings_array[0] = 2;
+            settings_array[1] = 100;
+            settings_array[2] = 100;
+        }
+        finally {
+            if (r != null) {
+                r.close();
+            }
+        }
+
+        difficulty = settings_array[0];
+        sfx_volume = settings_array[1];
+        music_volume = settings_array[2];
+    }
+
+    public void saveLastGame()
+        throws IOException {
+        Writer w = null;
+        try {
+            OutputStream out = context.openFileOutput("last_game.txt", context.MODE_PRIVATE);
+            w = new OutputStreamWriter(out);
+            w.write(Long.toString(total_score));
+            w.write('\n');
+            w.write(Integer.toString(difficulty));
+        } finally {
+            if (w != null) {
+                w.close();
+            }
+        }
+
+    }
+
 
     @Override
     public boolean onTouchEvent(MotionEvent motionEvent) {
@@ -341,12 +451,22 @@ public class GameView extends SurfaceView implements Runnable {
                         | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
                         | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                         | View.SYSTEM_UI_FLAG_FULLSCREEN);
-                if (motionEvent.getX(pointerIndex) < screen_width / 3) {
-                    player.turnLeft();
-                } else if (motionEvent.getX(pointerIndex) > screen_width * 2 / 3) {
-                    player.turnRight();
-                } else {
+                if (paused) {
+                    paused = false;
+                }
 
+                if (motionEvent.getX(pointerIndex) < screen_width / 5) {
+                    player.turnLeft();
+                } else if (motionEvent.getX(pointerIndex) > screen_width * 4 / 5) {
+                    if (motionEvent.getY(pointerIndex) < screen_height / 4) {
+                        paused = true;
+                    }
+                    else
+                        player.turnRight();
+                } else {
+                    if (player.canFire()){
+                        player.fire();
+                    }
                 }
                 break;
 

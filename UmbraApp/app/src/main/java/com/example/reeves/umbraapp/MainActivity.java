@@ -11,6 +11,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        overridePendingTransition(0,0);
+
         super.onCreate(savedInstanceState);
 
         // Set Fullscreen Immersive to Remove Navigation Bar, etc.

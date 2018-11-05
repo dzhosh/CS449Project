@@ -55,6 +55,20 @@ public class HUD {
     }
 
     public void drawControls(Canvas c, Paint p) {
+        if (GameObject.is_turning)  {
+            if (GameObject.turn_direction == 1) {
+                left_action.setOpacity(opacity - 100);
+                right_action.setOpacity(opacity);
+            }
+            else {
+                right_action.setOpacity(opacity - 100);
+                left_action.setOpacity(opacity);
+            }
+        }
+        else {
+            right_action.setOpacity(opacity);
+            left_action.setOpacity(opacity);
+        }
         left_action.drawBitmap(c, p);
         right_action.drawBitmap(c, p);
     }
