@@ -12,6 +12,7 @@ public abstract class GameObject {
     protected static double turn_speed; // in Radians per Second
     protected static boolean is_turning;
     protected static int turn_direction; // 1 for Left, -1 for Right
+    protected static long frame_rate;
 
     protected float width;
     protected float height;
@@ -57,5 +58,18 @@ public abstract class GameObject {
 
     public float getHeight() {
         return height;
+    }
+
+    public void setPosition(int _x, int _y) {
+        x = _x;
+        y = _y;
+    }
+
+    public static void setFrameRate(long _frame_rate) {
+        frame_rate = _frame_rate;
+    }
+
+    public static long getFrameRate() {
+        return frame_rate;
     }
 }

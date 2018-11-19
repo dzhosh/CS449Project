@@ -24,6 +24,10 @@ public class GameAudioManager {
         }
 
         sounds = new int[5];
+        sounds[0] = soundPool.load(c, R.raw.goal, 1);
+        sounds[1] = soundPool.load(c, R.raw.fire, 1);
+        sounds[2] = soundPool.load(c, R.raw.hit, 1);
+        sounds[3] = soundPool.load(c, R.raw.end, 1);
 
         mediaPlayer = MediaPlayer.create(c, R.raw.space_chase);
         isPlayingBGM = false;

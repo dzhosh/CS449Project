@@ -49,7 +49,7 @@ public class Player extends GameObject {
         is_turning = false;
         turn_direction = 1;
         hitbox_height = height / 2;
-        hitbox_width = width / 12;
+        hitbox_width = width / 8;
         laser_x = x;
         laser_y = screen_height * 3 / 5 - height / 2;
         laser_avail = false;
@@ -60,7 +60,7 @@ public class Player extends GameObject {
         laser_angle = Math.PI / 2 * 3;
     }
 
-    public void updateIntro(long frame_rate) {
+    public void updateIntro() {
         if (opacity < 255) {
             opacity += 255 / frame_rate / 2;
         }
@@ -92,7 +92,7 @@ public class Player extends GameObject {
         }
     }
 
-    public void update(long frame_rate) {
+    public void update() {
         if (opacity < 255) {
             opacity += 255 / frame_rate / 2;
         }
@@ -206,8 +206,8 @@ public class Player extends GameObject {
         }
     }
 
-    public void decreaseHealth() {
-        health_points -= 100 / durability;
+    public void decreaseHealth(int damage) {
+        health_points -= damage / durability;
         immune_frames = max_immune_frames;
     }
 

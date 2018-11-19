@@ -44,7 +44,7 @@ public class Goal extends GameObject {
         }
     }
 
-    public void update(long frame_rate, Player p) {
+    public void update(Player p) {
         if (is_turning) {
             // Rotate goal around (player_x,player_y)
             double theta = turn_speed / frame_rate * turn_direction;

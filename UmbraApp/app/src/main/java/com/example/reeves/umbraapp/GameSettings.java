@@ -65,7 +65,7 @@ public class GameSettings extends Activity implements View.OnClickListener {
 
         TextView difficulty_selected_text = findViewById(R.id.difficulty_selected_text);
         difficulties = new String[]{"Very Easy","Easy","Normal","Hard","Very Hard"};
-        difficulty_selected_text.setText(difficulties[difficultySelector]);
+        difficulty_selected_text.setText(difficulties[difficultySelector % 5]);
 
         SeekBar music_volume = findViewById(R.id.music_volume);
         music_volume.setMax(100);
@@ -154,8 +154,8 @@ public class GameSettings extends Activity implements View.OnClickListener {
     }
 
     public void decreaseDifficulty() {
-        difficultySelector--;
-        String new_difficulty_text = difficulties[difficultySelector % 5];
+        difficultySelector = (difficultySelector + 4) % 5;
+        String new_difficulty_text = difficulties[difficultySelector];
         TextView difficulty_selected_text = findViewById(R.id.difficulty_selected_text);
         difficulty_selected_text.setText(new_difficulty_text);
     }
@@ -198,7 +198,7 @@ public class GameSettings extends Activity implements View.OnClickListener {
         try {
             OutputStream out = openFileOutput(file_name, MODE_PRIVATE);
             w = new OutputStreamWriter(out);
-            w.write(Integer.toString(difficultySelector));
+            w.write(Integer.toString(difficultySelector % 5));
             w.write('\n');
             w.write(Integer.toString(sfx_volume.getProgress()));
             w.write('\n');

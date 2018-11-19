@@ -41,7 +41,9 @@ public class GameView extends SurfaceView implements Runnable {
     private int max_hostile_amount;
     private int min_hostile_amount;
     private int current_hostile_amount;
-    private Hostile hostiles[];
+    private int enemy_type;
+    private int enemy_type_count;
+    private Enemy enemies[];
 
     // Game Variables
     private long frame_rate;
@@ -64,13 +66,14 @@ public class GameView extends SurfaceView implements Runnable {
     private HUD hud;
 
     // Audio Variables
-    GameAudioManager audioManager;
+    private GameAudioManager audioManager;
 
     // Engine Variables
     private SurfaceHolder holder;
     private Thread gameThread = null;
     private Canvas canvas;
     private Paint paint;
+    private int beat;
 
     public GameView(Context c, Display display) {
         super(c);
@@ -117,13 +120,15 @@ public class GameView extends SurfaceView implements Runnable {
             stars[i] = new Star();
         }
 
-        // Hostile Variables
-        min_hostile_amount = 20;
-        max_hostile_amount = 70;
-        current_hostile_amount = min_hostile_amount;
-        hostiles = new Hostile[max_hostile_amount];
+        // Enemy Variables
+        min_hostile_amount = 3;
+        max_hostile_amount = 10;
+        current_hostile_amount = 0;
+        enemy_type = 0;
+        enemy_type_count = 2;
+        enemies = new Enemy[max_hostile_amount];
         for (int i = 0; i < min_hostile_amount; i++) {
-            hostiles[i] = new Hostile(player);
+            addHostile();
         }
 
         // HUD Variables
@@ -136,6 +141,7 @@ public class GameView extends SurfaceView implements Runnable {
         paused = false;
         frame_rate = 30;
         goal_score = 100;
+        beat = 0;
 
         // Intro Variables
         start_time = System.currentTimeMillis();
@@ -147,6 +153,8 @@ public class GameView extends SurfaceView implements Runnable {
         // Game Loop
         while (introRunning) {
             long start_time = System.currentTimeMillis();
+
+            GameObject.setFrameRate(frame_rate);
             updateIntro();
             drawIntro();
 
@@ -155,18 +163,25 @@ public class GameView extends SurfaceView implements Runnable {
                 frame_rate = 1000 / iteration_time;
             }
         }
+
+        // Reset time for in game timer
+        current_time = 0;
+
         while (running) {
             while (paused) {
                 draw();
             }
             // Get Start Time for iteration to Calculate frame_rate
             long start_time = System.currentTimeMillis();
+
+            GameObject.setFrameRate(frame_rate);
             update();
             draw();
 
             long iteration_time = System.currentTimeMillis() - start_time;
             if (iteration_time > 0) {
                 frame_rate = 1000 / iteration_time;
+                current_time += iteration_time / 1000.0;
             }
         }
         // End Game
@@ -200,7 +215,7 @@ public class GameView extends SurfaceView implements Runnable {
             }
         }
         if (current_time > 3) {
-            player.updateIntro(frame_rate);
+            player.updateIntro();
             if (!audioManager.isPlayingBGM()) {
                 audioManager.playBGM();
             }
@@ -249,7 +264,8 @@ public class GameView extends SurfaceView implements Runnable {
             // Draw Hostiles (Red)
             paint.setColor(Color.argb(255, 255, 0, 0));
             for (int i = 0; i < current_hostile_amount; i++) {
-                hostiles[i].drawCircle(canvas, paint);
+                enemies[i].drawBitmap(canvas, paint);
+                enemies[i].drawProjectiles(canvas, paint);
             }
 
             // Draw Score (White)
@@ -274,9 +290,9 @@ public class GameView extends SurfaceView implements Runnable {
 
     public void update() {
         // Update All Positions
-        goal.update(frame_rate, player);
+        goal.update(player);
         director.update(goal, player);
-        player.update(frame_rate);
+        player.update();
         updateBackground();
         updateHostiles();
         hud.updateHealthBar(player.getHealth(), frame_rate);
@@ -285,6 +301,13 @@ public class GameView extends SurfaceView implements Runnable {
         checkGoalCollision();
         checkHostileCollision();
         checkLaserCollision();
+
+        // If beat changed during time, increment beat
+        // 126 / 60 is song's Beats per Second
+        if ((int)(current_time * 126 / 60 % 4) != beat) {
+            beat = (beat + 1) % 4;
+            Enemy.increaseBeat();
+        }
     }
 
     public void checkGoalCollision() {
@@ -292,6 +315,7 @@ public class GameView extends SurfaceView implements Runnable {
         if (player.detectCollision(goal)) {
             total_score += goal_score;
             player.increaseHealth();
+            audioManager.playSound(0);
 
             // Create New Goal At Random Point between goal_max_distance and goal_min_distance
             goal.makeNewGoal(player.getX(), player.getY());
@@ -308,23 +332,35 @@ public class GameView extends SurfaceView implements Runnable {
 
     public void updateHostiles() {
         for (int i = 0; i < current_hostile_amount; i++) {
-            hostiles[i].update(frame_rate, player);
+            enemies[i].update(player);
         }
     }
 
     public void checkHostileCollision() {
         // Check for a collision for every hostile
-        for (int i = 0; i < current_hostile_amount; i++) {
-            if (player.detectHostileCollision(hostiles[i])) {
+        boolean hit = false;
+        int damage = 0;
 
+        for (int i = 0; i < current_hostile_amount; i++) {
+            if (player.detectHostileCollision(enemies[i])) {
+                hit = true;
+                damage = 100;
+            }
+            for (int j = 0; j < enemies[i].current_projectiles; j++) {
+                if (player.detectHostileCollision(enemies[i].projectiles[j])) {
+                    hit = true;
+                    damage = enemies[i].projectiles[j].getDamage();
+                    enemies[i].projectiles[j].destroyProjectile();
+                }
+            }
+
+            if (hit) {
                 // If player is not immune, reduce health and make immune
                 if (!player.isImmune()) {
-                    player.decreaseHealth();
+                    audioManager.playSound(2);
+                    player.decreaseHealth(damage);
                     checkPlayerHealth();
                 }
-
-                // Create new hostile to replace destroyed one
-                hostiles[i] = new Hostile(player);
             }
         }
     }
@@ -332,9 +368,9 @@ public class GameView extends SurfaceView implements Runnable {
     public void checkLaserCollision() {
         // Check for a collision for every hostile
         for (int i = 0; i < current_hostile_amount; i++) {
-            if (player.detectLaserCollision(hostiles[i])) {
+            if (player.detectLaserCollision(enemies[i])) {
                 // Create new hostile to replace destroyed one
-                hostiles[i] = new Hostile(player);
+                enemies[i] = new QuadProjectileEnemy(context);
                 player.resetLaser();
                 break;
             }
@@ -343,7 +379,14 @@ public class GameView extends SurfaceView implements Runnable {
 
     public void addHostile() {
         if (current_hostile_amount < max_hostile_amount) {
-            hostiles[current_hostile_amount] = new Hostile(player);
+            if (enemy_type == 0) {
+                enemies[current_hostile_amount] = new QuadProjectileEnemy(context);
+            }
+            else if (enemy_type == 1) {
+                enemies[current_hostile_amount] = new DualProjectileEnemy(context);
+            }
+
+            enemy_type = (enemy_type + 1) % enemy_type_count;
             current_hostile_amount++;
         }
     }
@@ -356,6 +399,7 @@ public class GameView extends SurfaceView implements Runnable {
 
     public void endGame() {
         // Add Ending Animations
+        audioManager.playSound(3);
         running = false;
         audioManager.stopBGM();
         audioManager.clean();
@@ -374,7 +418,6 @@ public class GameView extends SurfaceView implements Runnable {
         running = true;
         gameThread = new Thread(this);
         gameThread.start();
-        audioManager.resumeBGM();
     }
 
     public void pause() {
@@ -453,6 +496,7 @@ public class GameView extends SurfaceView implements Runnable {
                         | View.SYSTEM_UI_FLAG_FULLSCREEN);
                 if (paused) {
                     paused = false;
+                    audioManager.resumeBGM();
                 }
 
                 if (motionEvent.getX(pointerIndex) < screen_width / 5) {
@@ -466,6 +510,7 @@ public class GameView extends SurfaceView implements Runnable {
                 } else {
                     if (player.canFire()){
                         player.fire();
+                        audioManager.playSound(1);
                     }
                 }
                 break;
