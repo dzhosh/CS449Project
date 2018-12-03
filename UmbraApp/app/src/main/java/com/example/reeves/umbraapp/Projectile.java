@@ -57,11 +57,11 @@ public class Projectile extends GameObject {
     }
 
     public void increaseRadius(double beats_per_second, int new_radius) {
-        radius = (float)(radius + new_radius / frame_rate / beats_per_second);
+        radius = (float)(radius + (new_radius - radius) / frame_rate / beats_per_second);
     }
 
-    public void decreaseRadius(double seconds_per_beat, int new_radius) {
-        radius = (float)(radius - new_radius / seconds_per_beat / frame_rate);
+    public void decreaseRadius(double beats_per_second, int new_radius) {
+        radius = (float)(radius - (radius - new_radius) / frame_rate / beats_per_second);
     }
 
     public void fire() {

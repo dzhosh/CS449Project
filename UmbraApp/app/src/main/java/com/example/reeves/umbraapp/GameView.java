@@ -121,11 +121,11 @@ public class GameView extends SurfaceView implements Runnable {
         }
 
         // Enemy Variables
-        min_hostile_amount = 3;
-        max_hostile_amount = 10;
+        min_hostile_amount = 6;
+        max_hostile_amount = 18;
         current_hostile_amount = 0;
         enemy_type = 0;
-        enemy_type_count = 2;
+        enemy_type_count = 3;
         enemies = new Enemy[max_hostile_amount];
         for (int i = 0; i < min_hostile_amount; i++) {
             addHostile();
@@ -288,6 +288,43 @@ public class GameView extends SurfaceView implements Runnable {
         }
     }
 
+    public void drawEnd(int opacity) {
+        // Check for valid surface to draw data
+        if (holder.getSurface().isValid()) {
+            canvas = holder.lockCanvas();
+
+            // Draw Background (Dark Violet)
+            canvas.drawColor(Color.argb(255, 10, 0, 25));
+
+            // Draw Stars (White, Lower Opacity)
+            paint.setColor(Color.argb(150 * opacity / 255, 255, 255, 255));
+            for (int i = 0; i < 50; i++) {
+                stars[i].drawCircle(canvas, paint);
+            }
+
+            // Draw Goal
+            goal.drawEndCircle(canvas, paint, opacity);
+
+            // Draw Player
+            player.drawBitmap(canvas, paint);
+            player.drawLaser(canvas, paint);
+            // Draw Shield if player is immune
+            if (player.isImmune()) {
+                player.drawShield(canvas, paint);
+            }
+
+            // Draw Hostiles (Red)
+            paint.setColor(Color.argb(255, 255, 0, 0));
+            for (int i = 0; i < current_hostile_amount; i++) {
+                enemies[i].drawEndBitmap(canvas, paint, opacity);
+                enemies[i].drawEndProjectiles(canvas, paint, opacity);
+            }
+
+            paint.setAlpha(255);
+            holder.unlockCanvasAndPost(canvas);
+        }
+    }
+
     public void update() {
         // Update All Positions
         goal.update(player);
@@ -385,6 +422,9 @@ public class GameView extends SurfaceView implements Runnable {
             else if (enemy_type == 1) {
                 enemies[current_hostile_amount] = new DualProjectileEnemy(context);
             }
+            else {
+                enemies[current_hostile_amount] = new GrowShrinkEnemy(context);
+            }
 
             enemy_type = (enemy_type + 1) % enemy_type_count;
             current_hostile_amount++;
@@ -401,14 +441,29 @@ public class GameView extends SurfaceView implements Runnable {
         // Add Ending Animations
         audioManager.playSound(3);
         running = false;
+        int opacity = 255;
+        while (player.opacity > 0) {
+            player.updateEnd();
+            drawEnd(opacity);
+        }
         audioManager.stopBGM();
         audioManager.clean();
+        while (opacity > 0) {
+            opacity -= 255 / frame_rate;
+            if (opacity < 0) {
+                opacity = 0;
+            }
+            drawEnd(opacity);
+        }
+        drawEnd(0);
+
         try {
             saveLastGame();
         }
         catch (IOException e) {
             e.printStackTrace();
         }
+
         Activity a = (Activity)context;
         a.finish();
         context.startActivity(new Intent(context, GameOver.class));
@@ -418,18 +473,22 @@ public class GameView extends SurfaceView implements Runnable {
         running = true;
         gameThread = new Thread(this);
         gameThread.start();
+        audioManager.playBGM();
     }
 
     public void pause() {
         running = false;
-        paused = true;
         player.stopTurning();
-        audioManager.pauseBGM();
         try {
             gameThread.join();
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+    }
+
+    public void stop() {
+        paused = true;
+        audioManager.pauseBGM();
     }
 
     public void loadSettings()

@@ -54,6 +54,15 @@ public class Enemy extends GameObject{
         }
     }
 
+    public void drawEndProjectiles(Canvas canvas, Paint paint, int opacity) {
+        for (int i = 0; i < current_projectiles; i++) {
+            projectiles[i].drawEndCircle(canvas, paint, opacity);
+        }
+        for (int i = 0; i < Math.min(current_projectiles, projectiles_per_shot); i++) {
+            charging_projectiles[i].drawEndCircle(canvas, paint ,opacity);
+        }
+    }
+
     public void update(Player p) {
         if (is_turning) {
             double theta = turn_speed / frame_rate * turn_direction;
@@ -113,5 +122,15 @@ public class Enemy extends GameObject{
         canvas.rotate(-degrees, x, y);
         canvas.drawBitmap(bitmap,x - width / 2, y - height / 2, paint);
         canvas.restore();
+    }
+
+    @Override
+    public void drawEndBitmap(Canvas c, Paint p, int opacity) {
+        p.setAlpha(opacity);
+        c.save();
+        float degrees = (float)(angle * 180 / Math.PI);
+        c.rotate(-degrees, x, y);
+        c.drawBitmap(bitmap, x - width / 2, y - height / 2, p);
+        c.restore();
     }
 }

@@ -92,6 +92,15 @@ public class Player extends GameObject {
         }
     }
 
+    public void updateEnd() {
+        if (opacity > 0) {
+            opacity -= 255 / frame_rate;
+        }
+        if (opacity < 0) {
+            opacity = 0;
+        }
+    }
+
     public void update() {
         if (opacity < 255) {
             opacity += 255 / frame_rate / 2;

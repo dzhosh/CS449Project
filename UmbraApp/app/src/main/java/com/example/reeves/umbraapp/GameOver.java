@@ -23,8 +23,10 @@ public class GameOver extends Activity implements View.OnClickListener {
 
     private String last_difficulty;
     private String last_score;
+    private int scores[];
     private boolean restart;
     private static final String file_name = "last_game.txt";
+    private static final String score_file = "scores.txt";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,6 +35,15 @@ public class GameOver extends Activity implements View.OnClickListener {
 
         try {
             loadLastGame();
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        try {
+            scores = new int[10];
+            loadScores();
+            updateScores();
         }
         catch (IOException e) {
             e.printStackTrace();
@@ -155,4 +166,74 @@ public class GameOver extends Activity implements View.OnClickListener {
         last_score = game_array[0];
         last_difficulty = game_array[1];
     }
+
+    public void loadScores()
+            throws IOException {
+
+        BufferedReader r = null;
+        try {
+            InputStream in = openFileInput(score_file);
+            r = new BufferedReader(new InputStreamReader(in));
+            for (int i = 0; i < 10; i++) {
+                String line = r.readLine();
+                scores[i] = Integer.parseInt(line);
+            }
+        }
+        catch (FileNotFoundException e) {
+            for (int i = 0; i < 10; i++) {
+                scores[i] = (i + 1) * 1000;
+            }
+        }
+        finally {
+            if (r != null) {
+                r.close();
+            }
+        }
+    }
+
+    public void updateScores() {
+        // Find where last score places among the other scores
+        int score_placement = -1;
+        for (int i = 0; i < 10; i++) {
+            if (Integer.parseInt(last_score) > scores[i]) {
+                score_placement = i;
+            }
+            else {
+                break;
+            }
+        }
+
+        if (score_placement >= 0) {
+            // Move scores from score_placement one place downwards
+            for (int i = 0; i < score_placement; i++) {
+                scores[i] = scores[i + 1];
+            }
+            scores[score_placement] = Integer.parseInt(last_score);
+        }
+
+        try {
+            saveScores();
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void saveScores()
+        throws IOException{
+
+            Writer w = null;
+            try {
+                OutputStream out = openFileOutput(score_file, MODE_PRIVATE);
+                w = new OutputStreamWriter(out);
+                for (int i = 0; i < 10; i++) {
+                    w.write(Integer.toString(scores[i]));
+                    w.write('\n');
+                }
+            } finally {
+                if (w != null) {
+                    w.close();
+                }
+            }
+        }
 }

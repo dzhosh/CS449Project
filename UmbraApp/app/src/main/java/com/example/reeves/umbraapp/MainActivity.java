@@ -71,7 +71,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 startActivity(new Intent(this, GameSettings.class));
                 break;
             case R.id.triumphs_button:
-                startActivity(new Intent(this, GameSettings.class));
+                startActivity(new Intent(this, HighScores.class));
         }
     }
 

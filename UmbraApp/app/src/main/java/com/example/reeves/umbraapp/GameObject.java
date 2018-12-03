@@ -36,6 +36,16 @@ public abstract class GameObject {
         c.drawCircle(x, y, radius, p);
     }
 
+    public void drawEndCircle(Canvas c, Paint p, int opacity) {
+        p.setAlpha(opacity);
+        c.drawCircle(x, y, radius, p);
+    }
+
+    public void drawEndBitmap(Canvas c, Paint p, int opacity) {
+        p.setAlpha(opacity);
+        c.drawBitmap(bitmap, x - width / 2, y - height / 2, p);
+    }
+
     public void updateBitmap(Bitmap new_bitmap){
         bitmap = new_bitmap;
     }

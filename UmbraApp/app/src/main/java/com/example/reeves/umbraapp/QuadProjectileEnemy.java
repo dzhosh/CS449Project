@@ -69,7 +69,6 @@ public class QuadProjectileEnemy extends Enemy {
 
     private void buildNewProjectiles() {
         if (!projectiles_placed) {
-            // Playtest This
             int speed = 400;
             int damage = 50;
 

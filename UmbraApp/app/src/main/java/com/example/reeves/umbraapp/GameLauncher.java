@@ -46,6 +46,12 @@ public class GameLauncher extends Activity {
         gameView.pause();
     }
 
+    @Override
+    protected void onStop() {
+        super.onStop();
+        gameView.stop();
+    }
+
     // Remove System UI When Playing
     // Referenced https://developer.android.com/training/system-ui/immersive
     @Override

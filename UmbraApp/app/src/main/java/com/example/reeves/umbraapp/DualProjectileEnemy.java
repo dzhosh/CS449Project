@@ -68,7 +68,6 @@ public class DualProjectileEnemy extends Enemy {
 
     private void buildNewProjectiles() {
         if (!projectiles_placed) {
-            // Playtest This
             int speed = 100;
             int damage = 75;
 
